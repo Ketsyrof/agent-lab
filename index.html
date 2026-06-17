@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Lab — PM Agent Orchestrator</title>
+<style>
+:root{
+  --c-bg:#fafbfc;--c-surface:#fff;--c-border:#e3e8ee;--c-text:#1a2330;
+  --c-muted:#6b7686;--c-accent:#185FA5;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--c-bg);color:var(--c-text)}
+.wrap{max-width:720px;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem}
+header a{color:var(--c-muted);text-decoration:none;font-size:13px}
+header a:hover{color:var(--c-accent)}
+.lang-toggle{display:flex;gap:6px}
+.lang-toggle button{font-size:12px;border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-muted);padding:4px 10px;border-radius:6px;cursor:pointer}
+.lang-toggle button.active{background:var(--c-accent);color:#fff;border-color:var(--c-accent)}
+h1{font-size:1.6rem;margin:0 0 .4rem}
+.subtitle{color:var(--c-muted);font-size:14px;margin:0 0 2rem;line-height:1.5}
+.card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:14px;padding:1.5rem;margin-bottom:1.25rem}
+label{display:block;font-size:12px;font-weight:600;color:var(--c-muted);margin-bottom:6px}
+input[type=text],textarea{width:100%;font-size:14px;padding:10px 12px;border:1px solid var(--c-border);border-radius:8px;background:var(--c-bg);color:var(--c-text);font-family:inherit;margin-bottom:14px}
+textarea{resize:vertical;min-height:60px}
+button.run{font-size:14px;font-weight:600;padding:10px 24px;border:none;border-radius:8px;background:var(--c-accent);color:#fff;cursor:pointer}
+button.run:disabled{opacity:.5;cursor:not-allowed}
+.steps{margin-top:1.5rem;display:flex;flex-direction:column;gap:10px}
+.step{border:1px solid var(--c-border);border-radius:10px;padding:1rem 1.1rem;background:var(--c-surface);opacity:.4}
+.step.active{opacity:1;border-color:var(--c-accent)}
+.step.done{opacity:1}
+.step-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.step-body{font-size:13px;color:var(--c-text);line-height:1.6;white-space:pre-wrap}
+.spinner{display:inline-block;width:11px;height:11px;border:2px solid var(--c-border);border-top-color:var(--c-accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error{color:#c0392b;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="https://ketsyrof.github.io" id="back-link">← Portfolio Daniela Forystka</a>
+    <div class="lang-toggle">
+      <button id="lang-pl" class="active" onclick="setLang('pl')">PL</button>
+      <button id="lang-en" onclick="setLang('en')">EN</button>
+    </div>
+  </header>
+
+  <h1 id="title">Agent Lab — PM Agent Orchestrator</h1>
+  <p class="subtitle" id="subtitle">Wpisz nazwę funkcji produktowej. Agent PM zaplanuje pracę i deleguje ją do trzech wyspecjalizowanych sub-agentów (Business Analyst → QA → Tech Writer), z których każdy buduje na wyniku poprzedniego — na żywo zobaczysz każdy krok.</p>
+
+  <div class="card">
+    <label id="lbl-feature">Nazwa funkcji produktowej</label>
+    <input type="text" id="feature" placeholder="np. szybkie przelewy BLIK w aplikacji mobilnej" maxlength="200">
+    <label id="lbl-context">Dodatkowy kontekst (opcjonalnie)</label>
+    <textarea id="extra" placeholder="np. dotyczy klientów segmentu SME" maxlength="500"></textarea>
+    <button class="run" id="run-btn" onclick="runAgent()">Uruchom agenta →</button>
+  </div>
+
+  <div class="steps" id="steps"></div>
+</div>
+
+<script>
+var isEN = false;
+var STEP_DEFS = [
+  { key:'plan',    icon:'🧠', pl:'Orchestrator — plan',        en:'Orchestrator — plan' },
+  { key:'ba',      icon:'📊', pl:'Business Analyst',           en:'Business Analyst' },
+  { key:'qa',      icon:'✅', pl:'QA Agent',                    en:'QA Agent' },
+  { key:'tw',      icon:'📦', pl:'Tech Writer',                 en:'Tech Writer' },
+  { key:'summary', icon:'🏁', pl:'Orchestrator — podsumowanie', en:'Orchestrator — summary' }
+];
+
+function setLang(l){
+  isEN = (l === 'en');
+  document.getElementById('lang-pl').classList.toggle('active', !isEN);
+  document.getElementById('lang-en').classList.toggle('active', isEN);
+  document.getElementById('title').textContent = 'Agent Lab — PM Agent Orchestrator';
+  document.getElementById('subtitle').textContent = isEN
+    ? 'Enter a product feature name. The PM Agent plans the work and delegates it to three specialist sub-agents (Business Analyst → QA → Tech Writer), each building on the previous one\'s output — watch every step live.'
+    : 'Wpisz nazwę funkcji produktowej. Agent PM zaplanuje pracę i deleguje ją do trzech wyspecjalizowanych sub-agentów (Business Analyst → QA → Tech Writer), z których każdy buduje na wyniku poprzedniego — na żywo zobaczysz każdy krok.';
+  document.getElementById('lbl-feature').textContent = isEN ? 'Product feature name' : 'Nazwa funkcji produktowej';
+  document.getElementById('lbl-context').textContent = isEN ? 'Additional context (optional)' : 'Dodatkowy kontekst (opcjonalnie)';
+  document.getElementById('feature').placeholder = isEN ? 'e.g. instant BLIK transfers in the mobile app' : 'np. szybkie przelewy BLIK w aplikacji mobilnej';
+  document.getElementById('extra').placeholder = isEN ? 'e.g. applies to SME segment clients' : 'np. dotyczy klientów segmentu SME';
+  document.getElementById('run-btn').textContent = isEN ? 'Run agent →' : 'Uruchom agenta →';
+}
+
+function renderSteps(){
+  var html = '';
+  for (var i = 0; i < STEP_DEFS.length; i++){
+    var s = STEP_DEFS[i];
+    html += '<div class="step" id="step-' + s.key + '">' +
+      '<div class="step-title">' + s.icon + ' ' + (isEN ? s.en : s.pl) + '</div>' +
+      '<div class="step-body" id="body-' + s.key + '"></div>' +
+      '</div>';
+  }
+  document.getElementById('steps').innerHTML = html;
+}
+
+function setStepState(key, state){
+  var el = document.getElementById('step-' + key);
+  el.classList.remove('active', 'done');
+  if (state) el.classList.add(state);
+}
+
+function callAgent(step, feature, context){
+  return fetch('/.netlify/functions/agent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ step: step, feature: feature, context: context, lang: isEN ? 'en' : 'pl' })
+  }).then(function(r){ return r.json(); });
+}
+
+function extractText(data){
+  if (data && data.content && data.content[0] && data.content[0].text) return data.content[0].text;
+  if (data && data.error) return (isEN ? 'Error: ' : 'Błąd: ') + (data.error.message || JSON.stringify(data.error));
+  return isEN ? 'No response.' : 'Brak odpowiedzi.';
+}
+
+function runAgent(){
+  var feature = document.getElementById('feature').value.trim();
+  var extra = document.getElementById('extra').value.trim();
+  if (!feature){
+    alert(isEN ? 'Please enter a feature name' : 'Wpisz nazwę funkcji');
+    return;
+  }
+
+  var btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  renderSteps();
+
+  var context = extra ? (isEN ? 'Additional context: ' : 'Dodatkowy kontekst: ') + extra : '';
+  var results = {};
+
+  function runStep(i){
+    if (i >= STEP_DEFS.length){
+      btn.disabled = false;
+      return;
+    }
+    var key = STEP_DEFS[i].key;
+    setStepState(key, 'active');
+    document.getElementById('body-' + key).innerHTML = '<span class="spinner"></span>';
+
+    callAgent(key, feature, context).then(function(data){
+      var text = extractText(data);
+      results[key] = text;
+      document.getElementById('body-' + key).textContent = text;
+      setStepState(key, 'done');
+
+      context = Object.keys(results).map(function(k){
+        var def = STEP_DEFS.filter(function(s){ return s.key === k; })[0];
+        return (isEN ? def.en : def.pl) + ':\n' + results[k];
+      }).join('\n\n');
+
+      runStep(i + 1);
+    }).catch(function(){
+      document.getElementById('body-' + key).innerHTML = '<span class="error">' + (isEN ? 'Request failed.' : 'Zapytanie nie powiodło się.') + '</span>';
+      btn.disabled = false;
+    });
+  }
+
+  runStep(0);
+}
+
+renderSteps();
+</script>
+</body>
+</html>
